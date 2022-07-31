@@ -22,6 +22,7 @@ PlaqIndex = tuple[MelIndex, MelIndex, MelIndex, MelIndex]
 def multiply(iterable):
     return reduce(mul, iterable)
 
+@cache
 def prefactor(
         group: Group,
         irreps: Irreps,

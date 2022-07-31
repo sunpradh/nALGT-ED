@@ -1,10 +1,9 @@
 """
-Find the gauge-invariant states of a single vertex.
-Useful for constructing the gauge-invariant
+Find the invariant states of a single vertex
 """
 import numpy as np
 
-from gauss import gauss_operator
+from basis.gauss import gauss_operator
 from linalg import projector, null_space_system
 from utils import  sanitize, multiindex
 from group import Group, Irreps
@@ -28,6 +27,7 @@ def multiind_conf(index: int, conf: IrrepConf, irreps: Irreps) -> tuple[int, ...
             )
 
 
+# TODO: to_state_dict does not belongs to this module
 def to_state_dict(
         state: Vector,
         conf: IrrepConf,
@@ -41,6 +41,8 @@ def to_state_dict(
     return state_dict
 
 
+# TODO: transformation to a state_dict should be separate
+#       from the calculation of the invariant_space
 def invariant_states(
         group: Group,
         irreps: Irreps,
