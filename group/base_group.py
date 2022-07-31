@@ -41,6 +41,7 @@ class Group(ABC):
 
     @abstractmethod
     def __len__(self):
+        """Order of the group"""
         pass
 
     @abstractmethod
@@ -143,9 +144,10 @@ class Irreps(ABC):
         Return the matrix elements (`m`,`n`) of the `j`-th representation
         as a function of group elements
         """
-        match self.dim(j):
-            case 1: return lambda g: self.irreps[j](g),
-            case 2: return lambda g: self.irreps[j](g)[m, n]
+        if self.dim(j) == 1:
+            return lambda g: self.irreps[j](g)
+        if self.dim(j) == 2:
+            return lambda g: self.irreps[j](g)[m, n]
 
     def mels(self, g):
         """Return all the matrix elements of the element `g`"""
@@ -165,3 +167,10 @@ class Irreps(ABC):
             else:
                 mat_elems.update({f"{j}": r })
         return mat_elems
+
+    def mel_indices(self):
+        return [ (j, m, n)
+            for j in range(len(self.irreps))
+            for m, n in product(range(self.dim(j)), repeat=2)
+        ]
+

@@ -1,0 +1,99 @@
+"""
+Precompute the representation-theoretic coeffients of the
+magnetic terms for a plaquette
+"""
+
+# TODO: OPTIMIZE OPTIMIZE OPTIMIZE
+
+import numpy as np
+
+from itertools import product
+from functools import reduce
+from operator import mul
+
+from group import Group, Group_elem, Irreps
+
+# Index format in the irrep basis (j, m, n)
+MelIndex = tuple[int, int, int] # (j, m, n)
+# Index format for a plaquette state (j_1, m_1, n_1; ...; j_4, m_4, n_4)
+PlaqIndex = tuple[MelIndex, MelIndex, MelIndex, MelIndex]
+
+def multiply(iterable):
+    return reduce(mul, iterable)
+
+def prefactor(
+        group: Group,
+        irreps: Irreps,
+        plaq_ket: PlaqIndex,
+        plaq_bra: PlaqIndex
+    ):
+    """Compute the prefactor"""
+    ord_group = len(group)
+    irrep_ket_dim = multiply(irreps.dim(i[0]) for i in plaq_ket)
+    irrep_bra_dim = multiply(irreps.dim(i[0]) for i in plaq_bra)
+    return 2 * np.sqrt(irrep_ket_dim * irrep_bra_dim) / (ord_group ** 4)
+
+
+def plaq_character(
+        irreps: Irreps,
+        g_elems: tuple[Group_elem, ...],
+        magn_irrep: int
+    ):
+    g1, g2, g3, g4 = g_elems
+    return np.real(irreps.chars[magn_irrep](g1 * g2 * (~g3) * (~g4)))
+
+
+def plaq_mels(
+        irreps: Irreps,
+        g_elems: tuple[Group_elem, ...],
+        plaq_state: PlaqIndex
+    ):
+    return multiply(irreps.mel(*jmn)(g) for jmn, g in zip(plaq_state, g_elems))
+
+
+def wl_sum_term(
+        irreps: Irreps,
+        g_elems: tuple[Group_elem, ...],
+        plaq_ket: PlaqIndex,
+        plaq_bra: PlaqIndex,
+        magn_irrep: int
+    ):
+    return \
+        plaq_character(irreps, g_elems, magn_irrep) * \
+        plaq_mels(irreps, g_elems, plaq_ket) * \
+        np.conj(plaq_mels(irreps, g_elems, plaq_bra))
+
+
+def wl_mel(
+        group: Group,
+        irreps: Irreps,
+        plaq_ket: PlaqIndex,
+        plaq_bra: PlaqIndex,
+        magn_irrep: int,
+    ):
+    return \
+        prefactor(group, irreps, plaq_ket, plaq_bra) * \
+        sum(
+            wl_sum_term(irreps, g_elems, plaq_ket, plaq_bra, magn_irrep)
+            for g_elems in product(group, repeat=4)
+        )
+    # For D4, it sums over 8^4 = 4096 elements
+    # Not too efficient
+
+def wl_matrix(
+        group: Group,
+        irreps: Irreps,
+        magn_irrep: int
+    ):
+    irrep_inds = irreps.mel_indices()
+    irreps_ket = product(irrep_inds, repeat=4)
+    irreps_bra = product(irrep_inds, repeat=4)
+    return {
+        bra: {
+            ket: wl_mel(group, irreps, ket, bra, magn_irrep)
+            for ket in irreps_ket
+        } for bra in irreps_bra
+    }
+    # For D4, it iterates over 8^4 x 8^4 = 2^24 ~ 16mln elements
+    # Not too efficient
+    # Estimated time for the D4 case: 18.5 day

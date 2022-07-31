@@ -8,7 +8,7 @@ from gauss import gauss_operator
 from linalg import projector, null_space_system
 from utils import  sanitize, multiindex
 from group import Group, Irreps
-from .mytyping import IrrepConf, IrrepFn, Vector
+from mytyping import IrrepConf, IrrepFn, Vector
 
 
 def irrep_conf(conf: IrrepConf, irreps: Irreps) -> tuple[IrrepFn, ...]:

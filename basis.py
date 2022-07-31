@@ -1,7 +1,11 @@
+"""
+Compute the physical basis, in "compressed form",
+for a given group, irreps and lattice geometry
+"""
 from invariant import invariant_states
 from group import Group, Irreps
 from itertools import product
-from .typing import IrrepConf, VertexLinks, InvariantSpace
+from mytyping import IrrepConf, VertexLinks, InvariantSpace
 
 
 def vertex_basis(
