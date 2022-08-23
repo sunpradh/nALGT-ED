@@ -103,6 +103,8 @@ def _Q8_2d_irrep(g: Q8_elem):
         case 3: return -1j * g.sign * pauli['z'] # k
 
 class Q8_Irreps(Irreps):
+    __slots__ = "_1d_irreps", "_2d_irreps", "irreps", "chars"
+
     def __init__(self):
         self._1d_irreps = [
             lambda g: 1,
