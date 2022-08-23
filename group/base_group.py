@@ -29,15 +29,17 @@ class Group_elem(ABC):
 
 
 class Group(ABC):
+    __slots__ = "name", "elements"
+
     def __init__(self):
-        self._name = "(undefined)"
+        self.name = "(undefined)"
         self.elements = []
 
     def __repr__(self):
-        return f"<{self._name} group>"
+        return f"<{self.name} group>"
 
     def __str__(self):
-        return self._name
+        return self.name
 
     @abstractmethod
     def __len__(self):
@@ -84,6 +86,8 @@ class Group(ABC):
 
 
 class Irreps(ABC):
+    __slots__ = "_1d_irreps", "_2d_irreps", "irreps", "chars"
+
     def __init__(self):
         if not hasattr(self, "_1d_irreps") or not hasattr(self, "_2d_irreps"):
             raise RuntimeError("Irreps are not defined")

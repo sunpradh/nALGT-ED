@@ -31,6 +31,8 @@ def elem_str(elem_int):
 
 
 class Q8_elem(Group_elem):
+    __slots__ = 'sign', 'elem'
+
     def __init__(self, input: str):
         if match := re.fullmatch("([+-]?)([1ijk])", input):
             self.sign = -1 if match.group(1) == "-" else +1
@@ -39,8 +41,8 @@ class Q8_elem(Group_elem):
             raise ValueError("Invalid input string \"{input}\"")
 
     def __mul__(self, other):
-        # Group multiplication implemented with a lookup table because I could not think
-        # of a better method
+        # Group multiplication implemented with a lookup table because
+        # I could not think of a better method
         result_sign = self.sign * other._sign * Q8_sign_table[self.elem][other._elem]
         result_elem = Q8_elem_table[self.elem][other._elem]
         return Q8_elem(f"{sign_str(result_sign)}{elem_str(result_elem)}")
@@ -59,8 +61,10 @@ class Q8_elem(Group_elem):
 
 
 class Q8(Group):
+    __slots__ = "name", "elements"
+
     def __init__(self):
-        self._name = "Q8"
+        self.name = "Q8"
         self.elements = [
             Q8_elem(f"{sign}{elem}") for sign, elem in product("+-", "1ijk")
         ]

@@ -8,6 +8,8 @@ from .base_group import Group_elem, Group, Irreps
 
 def Dih_elem(N):
     class Dihedral_element(Group_elem):
+        __slots__ = "r", "s"
+
         def __init__(self, r, s):
             """ All the elements of DN are representated as r^k * s"""
             self.r = r % N
@@ -40,45 +42,41 @@ def Dih_elem(N):
     return Dihedral_element
 
 
-def Dih_group(N):
-    class Dihedral_group(Group):
-        def __init__(self):
-            self._N = N
-            self._name = f"D{self._N}"
-            self.elements = [
-                Dih_elem(N)(r, s) for s in [0, 1] for r in range(N)
-            ]
+class Dih_group(Group):
+    __slots__ = "N", "name", "elements"
 
-        def __len__(self):
-            return 2*self._N
+    def __init__(self, N):
+        self.N = N
+        self.name = f"D{self.N}"
+        self.elements = [
+            Dih_elem(N)(r, s) for s in [0, 1] for r in range(N)
+        ]
 
-        @property
-        def N(self):
-            return self._N
+    def __len__(self):
+        return 2*self.N
 
-        def elem(self, index):
-            return self.elements[index[0] + N*index[1]]
+    def elem(self, index):
+        return self.elements[index[0] + self.N*index[1]]
 
-        @property
-        def id(self):
-            return self.elem((0, 0))
+    @property
+    def id(self):
+        """Returns the identity element of the group"""
+        return self.elem((0, 0))
 
-        @property
-        def r(self):
-            """Returns the generator of the rotations of the group"""
-            return self.elem((1, 0))
+    @property
+    def r(self):
+        """Returns the generator of the rotations of the group"""
+        return self.elem((1, 0))
 
-        @property
-        def s(self):
-            """Returns the generator of the reflection of the group"""
-            return self.elem((0, 1))
+    @property
+    def s(self):
+        """Returns the generator of the reflection of the group"""
+        return self.elem((0, 1))
 
-        @property
-        def generators(self):
-            """Returns a list of the generators"""
-            return [self.r, self.s]
-
-    return Dihedral_group()
+    @property
+    def generators(self):
+        """Returns a list of the generators"""
+        return [self.r, self.s]
 
 
 _Dih_even_1d_irreps = [
@@ -120,6 +118,8 @@ def _Dih_2d_irrep_complex(N, k):
 
 
 class Dih_Irreps(Irreps):
+    __slots__ = "N", "_1d_irreps", "_2d_irreps", "irreps", "chars"
+
     def __init__(self, N, complex=False):
         self.N = N
         Dih_2d_irrep = _Dih_2d_irrep_complex if complex else _Dih_2d_irrep_real
