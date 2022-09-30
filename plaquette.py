@@ -11,6 +11,7 @@ import logging as log
 from itertools import product
 from functools import reduce, cache
 from operator import mul
+from pathos.multiprocessing import ProcessingPool as Pool
 
 from group import Group, Group_elem, Irreps
 from utils import sanitize
@@ -102,7 +103,10 @@ def wl_mel(
         )
     if mel:
         log.info(f'bra: {plaq_bra}, ket: {plaq_ket}, mel: {mel}')
-    return mel
+        return mel
+    else:
+        return None
+    # return mel
     # For D4
     #  - with full range it sums over 8^4 = 4096 elements
     #  - with non_zero_plaq_char it sums over 1024 elements
@@ -120,19 +124,19 @@ def non_zero_plaq_char(group: Group, irreps: Irreps, magn_irrep: int):
 def wl_matrix(
         group: Group,
         irreps: Irreps,
-        magn_irrep: int
+        magn_irrep: int,
     ):
     irrep_inds = irreps.mel_indices()
     irreps_bra = product(irrep_inds, repeat=4)
     # Ranges over only a subset of G x G x G x G,
     # for which the character chi(g1 * g2 * ~g3 * ~g4) is non zero
     # when summing for a single matrix element
-    g_range = non_zero_plaq_char(group, irreps, magn_irrep)
+    group_range = non_zero_plaq_char(group, irreps, magn_irrep)
     C = {}
     for bra in irreps_bra:
-        log.info(f'>> bra: {bra}')
+        log.info(f'>> Calculating WL mels for bra: {bra}')
         irreps_ket = product(irrep_inds, repeat=4)
-        mels = {ket: wl_mel(group, irreps, ket, bra, magn_irrep, g_range)
+        mels = {ket: wl_mel(group, irreps, ket, bra, magn_irrep, group_range)
                 for ket in irreps_ket}
         if mels:
             C[bra] = mels
@@ -140,3 +144,35 @@ def wl_matrix(
     # For D4, it iterates over 8^4 x 8^4 = 2^24 ~ 16mln elements
     # Not too efficient
     # Estimated time for the D4 case: 12h
+
+
+class WLMatrixWorker:
+    def __init__(self, group, irreps, magn_irrep):
+        self.group = group
+        self.irreps = irreps
+        self.magn_irrep = magn_irrep
+        self.group_range = non_zero_plaq_char(self.group, self.irreps, self.magn_irrep)
+
+    def calculate_row(self, bra):
+        log.info(f'>> Calculating WL mels for bra: {bra}')
+        irreps_kets = product(self.irreps.mel_indices(), repeat=4)
+        mels = dict()
+        for ket in irreps_kets:
+            mel = wl_mel(self.group, self.irreps, ket, bra, self.magn_irrep, self.group_range)
+            if mel:
+                mels[ket] = mel
+        return mels
+
+
+def wl_matrix_multiproc(
+        group: Group,
+        irreps: Irreps,
+        magn_irrep: int,
+        pool_size=4
+    ):
+    irreps_bras = product(irreps.mel_indices(), repeat=4)
+    worker = WLMatrixWorker(group, irreps, magn_irrep)
+    pool = Pool(pool_size)
+    irreps_bras = list(irreps_bras)
+    result = pool.map(worker.calculate_row, irreps_bras)
+    return result

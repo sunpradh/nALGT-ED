@@ -1,34 +1,28 @@
 """Metaclasses for group element, group and irriducible representation (irreps)"""
 
-from abc import ABC, abstractmethod
 from itertools import product
 import numpy as np
 
 # TODO: DOCUMENTATION
 
-class Group_elem(ABC):
-    @abstractmethod
+class Group_elem():
     def __mul__(self):
         pass
 
-    @abstractmethod
     def __invert__(self):
         pass
 
-    @abstractmethod
     def __hash__(self):
         pass
 
-    @abstractmethod
     def __repr__(self):
         pass
 
-    @abstractmethod
     def __str__(self):
         pass
 
 
-class Group(ABC):
+class Group():
     __slots__ = "name", "elements"
 
     def __init__(self):
@@ -41,23 +35,19 @@ class Group(ABC):
     def __str__(self):
         return self.name
 
-    @abstractmethod
     def __len__(self):
         """Order of the group"""
         pass
 
-    @abstractmethod
     def elem(self, index):
         pass
 
     @property
-    @abstractmethod
     def id(self):
         """Identity element of the group"""
         pass
 
     @property
-    @abstractmethod
     def generators(self):
         """List of generators of the group"""
         pass
@@ -85,7 +75,7 @@ class Group(ABC):
 
 
 
-class Irreps(ABC):
+class Irreps():
     __slots__ = "_1d_irreps", "_2d_irreps", "irreps", "chars"
 
     def __init__(self):
@@ -106,7 +96,6 @@ class Irreps(ABC):
                             self._2d_irreps
                         ))
 
-    @abstractmethod
     def __repr__(self):
         pass
 

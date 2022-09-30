@@ -1,0 +1,9 @@
+name: nalgt
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy
+  - scipy
+  - pathos
+  - json5
