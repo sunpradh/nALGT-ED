@@ -103,7 +103,10 @@ def wl_mel(
         )
     if mel:
         log.info(f'bra: {plaq_bra}, ket: {plaq_ket}, mel: {mel}')
-    return mel
+        return mel
+    else:
+        return None
+    # return mel
     # For D4
     #  - with full range it sums over 8^4 = 4096 elements
     #  - with non_zero_plaq_char it sums over 1024 elements
@@ -158,10 +161,6 @@ class WLMatrixWorker:
             mel = wl_mel(self.group, self.irreps, ket, bra, self.magn_irrep, self.group_range)
             if mel:
                 mels[ket] = mel
-        # mels = {
-        #     ket: wl_mel(self.group, self.irreps, ket, bra, self.magn_irrep, group_range)
-        #     for ket in irreps_kets
-        # }
         return mels
 
 
@@ -172,10 +171,8 @@ def wl_matrix_multiproc(
         pool_size=4
     ):
     irreps_bras = product(irreps.mel_indices(), repeat=4)
-    # group_range = non_zero_plaq_char(group, irreps, magn_irrep)
     worker = WLMatrixWorker(group, irreps, magn_irrep)
     pool = Pool(pool_size)
-    # TEMPORARY
-    irreps_bras = list(irreps_bras)[:8]
+    irreps_bras = list(irreps_bras)
     result = pool.map(worker.calculate_row, irreps_bras)
     return result
