@@ -3,41 +3,36 @@ Precompute the representation-theoretic coeffients of the
 magnetic terms for a plaquette
 """
 
-# TODO: OPTIMIZE OPTIMIZE OPTIMIZE
-
-import numpy as np
 import logging as log
-
 from itertools import product
 from functools import reduce, cache
 from operator import mul
+import numpy as np
 from pathos.multiprocessing import ProcessingPool as Pool
 
-from group import Group, Group_elem, Irreps
+from group import Group, Irreps
 from utils import sanitize
+from mytyping import PlaqIndex, GroupTuple
 
-# Type hintings:
-# - Index format in the irrep basis (j, m, n)
-MelIndex = tuple[int, int, int]
-# - Index format for a plaquette state (j_1, m_1, n_1; ...; j_4, m_4, n_4)
-PlaqIndex = tuple[MelIndex, MelIndex, MelIndex, MelIndex]
-# - Group tuple (g_1, g_2, g_3, g_4)
-GroupTuple = tuple[Group_elem, Group_elem, Group_elem, Group_elem]
 
 def multiply(iterable):
-    return reduce(mul, iterable)
+    """Multiply the elements of an iterable"""
+    return reduce(mul, iterable, 1.0)
+
 
 @cache
 def prefactor(
         group: Group,
         irreps: Irreps,
-        plaq_ket: PlaqIndex,
-        plaq_bra: PlaqIndex
+        ket: PlaqIndex,
+        bra: PlaqIndex
     ) -> float:
-    """Compute the prefactor"""
+    """
+    Compute the prefactor with the dimension of each irreps in `ket` and `bra`
+    """
     ord_group = len(group)
-    irrep_ket_dim = multiply(irreps.dim(i[0]) for i in plaq_ket)
-    irrep_bra_dim = multiply(irreps.dim(i[0]) for i in plaq_bra)
+    irrep_ket_dim = multiply(irreps.dim(i[0]) for i in ket)
+    irrep_bra_dim = multiply(irreps.dim(i[0]) for i in bra)
     return 2 * np.sqrt(irrep_ket_dim * irrep_bra_dim) / (ord_group ** 4)
 
 
@@ -47,6 +42,9 @@ def plaq_character(
         g_elems: GroupTuple,
         magn_irrep: int
     ) -> float:
+    """
+    Compute the character of plaquette given the magnetic irrep `magn_irrep`
+    """
     g1, g2, g3, g4 = g_elems
     return np.real(irreps.chars[magn_irrep](g1 * g2 * (~g3) * (~g4)))
 
@@ -57,7 +55,8 @@ def plaq_mels(
         g_elems: GroupTuple,
         plaq_state: PlaqIndex
     ) -> float | complex:
-    """Computes
+    """
+    Computes
     $[\pi^{j_1}(g_1)]_{m_1 n_1} * ... * [\pi^{j_4}(g_4)]_{m_4 n_4}$
     """
     return multiply(irreps.mel(*jmn)(g) for jmn, g in zip(plaq_state, g_elems))
@@ -70,7 +69,8 @@ def wl_sum_term(
         plaq_bra: PlaqIndex,
         magn_irrep: int
     ) -> float | complex:
-    """Computes one term of the sum for one matrix element of the wilson loop
+    """
+    Computes one term of the sum for one matrix element of the Wilson loop
     $$
         \Re\chi(g_1 g_2 g_3^{-1} g_4^{-1}) * \
         [\pi^{j_1}(g_1)]_{m_1 n_1} * ... * [\pi^{j_4}(g_4)]_{m_4 n_4} * \
@@ -102,11 +102,10 @@ def wl_mel(
             )
         )
     if mel:
-        log.info(f'bra: {plaq_bra}, ket: {plaq_ket}, mel: {mel}')
+        log.debug(f'bra: {plaq_bra}, ket: {plaq_ket}, mel: {mel}')
         return mel
     else:
         return None
-    # return mel
     # For D4
     #  - with full range it sums over 8^4 = 4096 elements
     #  - with non_zero_plaq_char it sums over 1024 elements
@@ -114,6 +113,10 @@ def wl_mel(
 
 
 def non_zero_plaq_char(group: Group, irreps: Irreps, magn_irrep: int):
+    """
+    Return a the list of states (in group repr) with
+    non-zero character in the `magn_irrep` irrep
+    """
     return [
         g_elems
         for g_elems in product(group, repeat=4)
@@ -126,6 +129,11 @@ def wl_matrix(
         irreps: Irreps,
         magn_irrep: int,
     ):
+    """
+    Compute the matrix elements of the single-plaquette Wilson loop
+
+    This function is single-threaded
+    """
     irrep_inds = irreps.mel_indices()
     irreps_bra = product(irrep_inds, repeat=4)
     # Ranges over only a subset of G x G x G x G,
@@ -154,6 +162,7 @@ class WLMatrixWorker:
         self.group_range = non_zero_plaq_char(self.group, self.irreps, self.magn_irrep)
 
     def calculate_row(self, bra):
+        """Computes a single row of the single-plaquette Wilson loop matrix"""
         log.info(f'>> Calculating WL mels for bra: {bra}')
         irreps_kets = product(self.irreps.mel_indices(), repeat=4)
         mels = dict()
@@ -170,9 +179,14 @@ def wl_matrix_multiproc(
         magn_irrep: int,
         pool_size=4
     ):
-    irreps_bras = product(irreps.mel_indices(), repeat=4)
+    """
+    Compute the matrix elements of the single-plaquette Wilson loop
+
+    This function is multi-threaded, each tread computes a row of the matrix.
+    The number of threads is given by `pool_size`
+    """
+    irreps_bras = list(product(irreps.mel_indices(), repeat=4))
     worker = WLMatrixWorker(group, irreps, magn_irrep)
     pool = Pool(pool_size)
-    irreps_bras = list(irreps_bras)
     result = pool.map(worker.calculate_row, irreps_bras)
-    return result
+    return {bra: row for bra, row in zip(irreps_bras, result)}

@@ -48,12 +48,3 @@ def irreps_labels(irreps, group):
         else:
             labels.append(f"{j}")
     return labels
-
-
-def jsonify_state(state_dict, labels):
-    return { ",".join([labels[j] for j in state]): value
-                    for state, value in state_dict.items() }
-
-
-def jsonify_basis(states, labels):
-    return { k: jsonify_state(state, labels) for k, state in enumerate(states) }
