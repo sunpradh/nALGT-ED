@@ -3,6 +3,7 @@ import numpy as np
 from itertools import product
 from .base_group import Group_elem, Group, Irreps
 
+# TODO: DOES NOT WORK
 
 # Q8 simplified multiplication table, without the signs
 Q8_elem_table = [
@@ -48,7 +49,7 @@ class Q8_elem(Group_elem):
         return Q8_elem(f"{sign_str(result_sign)}{elem_str(result_elem)}")
 
     def __invert__(self):
-        return Q8_elem(f"{sign_str(-1*self.sign)}{self._elem_str()}")
+        return Q8_elem(f"{sign_str(-1*self.sign)}{self.elem}")
 
     def __hash__(self):
         return hash(('Q8', self.sign, self.elem))
