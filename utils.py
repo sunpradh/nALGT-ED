@@ -36,15 +36,3 @@ def multiindex(index, sizes, length, offsets=0):
     sizes = repeat(sizes, length) if not is_iterable(sizes) else sizes
     prod = accumulate(sizes, mul, initial=1)
     return tuple((index // p) % s + o for p, s, o in zip(prod, sizes, offsets))
-
-
-def irreps_labels(irreps, group):
-    labels = []
-    id = group.id
-    for j, irr in enumerate(irreps):
-        r = irr(id)
-        if np.shape(r):
-            labels += [f"{j}{m}" for m in range(r.shape[0])]
-        else:
-            labels.append(f"{j}")
-    return labels
