@@ -15,6 +15,9 @@ def Dih_elem(N):
             self.r = r % N
             self.s = s % 2
 
+        def __eq__(self, other):
+            return self.r == other.r and self.s == other.s
+
         def __mul__(self, other):
             if self.s == 1:
                 return Dihedral_element(

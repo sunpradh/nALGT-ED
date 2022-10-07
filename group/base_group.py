@@ -6,7 +6,10 @@ import numpy as np
 # TODO: DOCUMENTATION
 
 class Group_elem():
-    def __mul__(self):
+    def __eq__(self, other):
+        pass
+
+    def __mul__(self, other):
         pass
 
     def __invert__(self):
@@ -41,6 +44,9 @@ class Group():
 
     def elem(self, index):
         pass
+
+    def __call__(self, index):
+        return self.elem(index)
 
     @property
     def id(self):
