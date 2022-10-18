@@ -4,10 +4,11 @@ magnetic terms for a plaquette
 """
 
 import logging as log
+import numpy as np
+import pickle
 from itertools import product
 from functools import reduce, cache
 from operator import mul
-import numpy as np
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from group import Group, Irreps
@@ -18,6 +19,9 @@ from mytyping import PlaqIndex, GroupTuple
 def multiply(iterable):
     """Multiply the elements of an iterable"""
     return reduce(mul, iterable, 1.0)
+
+def all_true(iterable):
+    return bool(multiply(iterable))
 
 
 @cache
@@ -190,3 +194,68 @@ def wl_matrix_multiproc(
     pool = Pool(pool_size)
     result = pool.map(worker.calculate_row, irreps_bras)
     return {bra: row for bra, row in zip(irreps_bras, result)}
+
+
+def plaq_links(vertices, plaquettes, ind):
+    """Returns the indices of the links the `ind`-th plaquette"""
+    return tuple(vertices[i][k] for k, i in enumerate(plaquettes[ind]))
+
+
+class Plaquette:
+    """
+    Class for interfacing with the matrix elements of a single plaquette Wilson loop
+    """
+    def __init__(self, from_dict = None, from_file = None):
+        """
+        Can be initialized from a dict (output of wl_matrix*) or read from a pickled file
+        """
+        self._mels_dict = None
+        if from_dict:
+            self._mels_dict = from_dict
+        if from_file:
+            self.load_file(from_file)
+        self._rows = list(self._mels_dict.keys())
+        self._irrep_confs = list({tuple(jmn[0] for jmn in row) for row in self._rows})
+        self._irrep_confs.sort()
+
+    def load_file(self, filename):
+        """Load plaquette matrix elements from a file"""
+        with open(filename, 'rb') as file:
+            data = pickle.load(file)
+        self._mels_dict = data
+
+
+    def save(self, filename):
+        """Save the plaquette matrix elements to a file"""
+        with open(filename, 'wb') as file:
+            pickle.dump(file)
+
+
+    def select_rows(self, conf):
+        """
+        Select the rows of the Wilson loop matrix corresponding to a
+        irrep configuration on the links of the plaquette
+        """
+        selected_rows = {
+            row: self._mels_dict[row]
+            for row in self._rows
+            if all_true(j == jmn[0] for j, jmn in zip(conf, row))
+        }
+        return selected_rows
+
+
+    def select(self, bra_conf, ket_conf):
+        """
+        Select the matrix elements for a given bra and ket
+        """
+        selection = dict()
+        for row in self.select_rows(bra_conf):
+            selected_cols = {
+                col: self._mels_dict[row][col]
+                for col in self._mels_dict[row]
+                if all_true(j == jmn[0] for j, jmn in zip(ket_conf, col))
+            }
+            if selected_cols:
+                selection[row] = selected_cols
+        return selection
+
