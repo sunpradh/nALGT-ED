@@ -2,7 +2,7 @@
 Compute the Hamiltonian
 """
 from basis.basis import Basis
-from mytyping import Group_elem, Irreps
+from group import Group_elem, Irreps
 from typing import Callable
 
 def electric_single_link_fn(
@@ -26,3 +26,7 @@ def electric_hamiltonian(
         sum(f(j) for j in state[0]) for state in basis.states
     ]
     return electric_values
+
+
+def magnetic_single_plaquette(basis, vertices, plaquettes, ):
+    pass
