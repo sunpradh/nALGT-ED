@@ -2,6 +2,8 @@
 Compute the physical basis, in "compressed form",
 for a given group, irreps and lattice geometry
 """
+from collections import namedtuple
+
 from basis.invariant import invariant_states
 from group import Group, Irreps
 from itertools import product
@@ -22,13 +24,15 @@ def vertex_basis(
     irrep_conf = product(range(len(irreps)), repeat=4)
     for conf in irrep_conf:
         inv_states = invariant_states(
-                group,
-                irreps,
-                conf,
-                sanitized=sanitized,
-                state_dict=state_dict
-            )
+            group,
+            irreps,
+            conf,
+            sanitized=sanitized,
+            state_dict=state_dict
+        )
         if inv_states:
+            shape = tuple(irreps.dim(j) for j in conf)
+            inv_states = [v.reshape(shape) for v in inv_states]
             basis.update({conf: inv_states})
     return basis
 
@@ -40,28 +44,7 @@ def vertex_conf(
     return tuple(irrep_conf[l] for l in vertex)
 
 
-def physical_basis(
-        group: Group,
-        irreps: Irreps,
-        vertices: list[VertexLinks],
-        nlinks: int
-    ) -> dict[IrrepConf, list[InvariantSpace]]:
-    """
-    Compute the physical Hilbert space, given `group` and `irreps`, the links
-    of each vertex (`vertices`) and the number of links
-    """
-    possible_irrep_confs = product(range(len(irreps)), repeat=nlinks)
-    vbasis = vertex_basis(group, irreps)
-    basis = dict()
-    for conf in possible_irrep_confs:
-        inv_spaces = [
-            vbasis[vertex_conf(conf, vertex)]
-                for vertex in vertices
-                if vertex_conf(conf, vertex) in vbasis
-        ]
-        if len(inv_spaces) == len(vertices):
-            basis.update({conf: inv_spaces})
-    return basis
+StateLabel = namedtuple('StateIndex', ['irreps', 'subindex'])
 
 
 class Basis:
@@ -76,18 +59,11 @@ class Basis:
         self.irreps = irreps
         self.vertices = vertices
         self.nlinks = nlinks
-        self._basis = self.physical_basis()
-        self.states = self._expand_basis()
+        self._basis = self._compute_basis()
+        self.states = self._expand_state_labels()
 
-    def _expand_basis(self):
-        states_list = []
-        for irrep_conf in self._basis.keys():
-            inv_space_sizes = [len(v) for v in self._basis[irrep_conf]]
-            iterators = [range(size) for size in inv_space_sizes]
-            states_list += [(irrep_conf, A) for A in product(*iterators)]
-        return states_list
 
-    def physical_basis(self) -> dict[IrrepConf, list[InvariantSpace]]:
+    def _compute_basis(self) -> dict[IrrepConf, list[InvariantSpace]]:
         """
         Compute the physical Hilbert space, given `group` and `irreps`, the links
         of each vertex (`vertices`) and the number of links
@@ -98,9 +74,22 @@ class Basis:
         for conf in possible_irrep_confs:
             inv_spaces = [
                 vbasis[vertex_conf(conf, vertex)]
-                    for vertex in self.vertices
-                    if vertex_conf(conf, vertex) in vbasis
+                for vertex in self.vertices
+                if vertex_conf(conf, vertex) in vbasis
             ]
             if len(inv_spaces) == len(self.vertices):
                 basis.update({conf: inv_spaces})
         return basis
+
+    def _expand_state_labels(self):
+        states_list = []
+        for irrep_conf in self._basis.keys():
+            iterators = [range(len(vs)) for vs in self._basis[irrep_conf]]
+            states_list += [
+                StateLabel(irrep_conf, subindex)
+                for subindex in product(*iterators)
+            ]
+        return states_list
+
+    def __call__(self, state: StateLabel):
+        return [self._basis[state.irreps][k] for k in state.subindex]
