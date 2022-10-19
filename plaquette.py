@@ -196,9 +196,12 @@ def wl_matrix_multiproc(
     return {bra: row for bra, row in zip(irreps_bras, result)}
 
 
-def plaq_links(vertices, plaquettes, ind):
+def plaquette_links(vertices, plaquettes):
     """Returns the indices of the links the `ind`-th plaquette"""
-    return tuple(vertices[i][k] for k, i in enumerate(plaquettes[ind]))
+    return [
+        tuple(vertices[i][k] for k, i in enumerate(plq))
+        for plq in plaquettes
+    ]
 
 
 class Plaquette:
@@ -244,16 +247,16 @@ class Plaquette:
         return selected_rows
 
 
-    def select(self, bra_conf, ket_conf):
+    def select(self, bra_irreps, ket_irreps):
         """
         Select the matrix elements for a given bra and ket
         """
         selection = dict()
-        for row in self.select_rows(bra_conf):
+        for row in self.select_rows(bra_irreps):
             selected_cols = {
                 col: self._mels_dict[row][col]
                 for col in self._mels_dict[row]
-                if all_true(j == jmn[0] for j, jmn in zip(ket_conf, col))
+                if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col))
             }
             if selected_cols:
                 selection[row] = selected_cols

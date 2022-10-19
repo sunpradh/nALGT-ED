@@ -4,7 +4,7 @@ sys.path.append('..')
 import logging as log
 
 from group import Dih_group, Dih_Irreps
-from plaquette import Plaquette, plaq_links
+from plaquette import Plaquette, plaquette_links
 
 log.basicConfig(level=log.INFO)
 
@@ -55,7 +55,7 @@ plaquettes = [
 ]
 
 # expected plaquettes links
-plaquette_links = [
+expect_plq_links = [
     (0, 1, 2, 3),
     (4, 3, 5, 1),
     (5, 7, 4, 6),
@@ -64,8 +64,8 @@ plaquette_links = [
 
 # Testing function plaq_links
 print("\n\nPlaquettes links:")
+links = plaquette_links(vertices, plaquettes)
 for k in range(len(plaquettes)):
-    links = plaq_links(vertices, plaquettes, k)
     print(f"> Plaq n. {k}:")
-    print(f"\t> computed: {links}")
-    print(f"\t> expected: {plaquette_links[k]}")
+    print(f"\t> computed: {links[k]}")
+    print(f"\t> expected: {expect_plq_links[k]}")
