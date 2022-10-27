@@ -204,7 +204,7 @@ def plaquette_links(vertices, plaquettes):
     ]
 
 
-class Plaquette:
+class PlaquetteMel:
     """
     Class for interfacing with the matrix elements of a single plaquette Wilson loop
     """
@@ -247,18 +247,24 @@ class Plaquette:
         return selected_rows
 
 
-    def select(self, bra_irreps, ket_irreps):
+    def select(self, bra_irreps, ket_irreps, as_list=False):
         """
         Select the matrix elements for a given bra and ket
         """
         selection = dict()
-        for row in self.select_rows(bra_irreps):
-            selected_cols = {
-                col: self._mels_dict[row][col]
-                for col in self._mels_dict[row]
-                if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col))
-            }
-            if selected_cols:
-                selection[row] = selected_cols
+        if as_list:
+            for row in self.select_rows(bra_irreps):
+                for col in self._mels_dict[row]:
+                    if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col)):
+                        selection[(row, col)] = self._mels_dict[row][col]
+        else:
+            for row in self.select_rows(bra_irreps):
+                selected_cols = {
+                    col: self._mels_dict[row][col]
+                    for col in self._mels_dict[row]
+                    if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col))
+                }
+                if selected_cols:
+                    selection[row] = selected_cols
         return selection
 
