@@ -44,7 +44,7 @@ def vertex_conf(
     return tuple(irrep_conf[l] for l in vertex)
 
 
-StateLabel = namedtuple('StateIndex', ['irreps', 'subindex'])
+StateLabel = namedtuple('StateLabel', ['irreps', 'subindex'])
 
 
 class Basis:
@@ -91,5 +91,10 @@ class Basis:
             ]
         return states_list
 
-    def __call__(self, state: StateLabel):
-        return [self._basis[state.irreps][k] for k in state.subindex]
+    def __call__(self, state: StateLabel = None, n: int = None):
+        if n:
+            return self(self.states[n])
+        return [
+            self._basis[state.irreps][vertex][subind]
+            for vertex, subind  in enumerate(state.subindex)
+        ]
