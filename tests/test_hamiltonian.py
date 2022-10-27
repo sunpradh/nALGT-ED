@@ -9,12 +9,23 @@ group = Dih_group(4)
 irreps = Dih_Irreps(group.N)
 
 # 2x2 periodic lattice
+# indices of the links
 vertices = [
     (0, 3, 4, 7),
     (4, 1, 0, 6),
     (5, 6, 2, 1),
     (2, 7, 5, 3)
 ]
+
+# indices of the vertices for each plaquettes
+# counterclockwise, from the bottom left
+plaquettes = [
+    (0, 1, 2, 3),
+    (1, 0, 3, 2),
+    (2, 3, 0, 1),
+    (3, 2, 1, 0)
+]
+
 
 nlinks = 8
 print(f'> Group: {group}')

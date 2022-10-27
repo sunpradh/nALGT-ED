@@ -30,8 +30,3 @@ expected_num_states = sum(
 print(f'> Total number of expectect physical states: {expected_num_states}')
 
 print(f'> Equal? {len(basis.states) == expected_num_states}')
-
-# import pickle
-# with open(f"../pickled/basis_{group}.pkl", "wb") as file:
-#     print(f"> Wrinting to {file.name}")
-#     pickle.dump(basis, file)

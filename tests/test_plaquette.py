@@ -4,7 +4,7 @@ sys.path.append('..')
 import logging as log
 
 from group import Dih_group, Dih_Irreps
-from plaquette import Plaquette, plaquette_links
+from plaquette import PlaquetteMel, plaquette_links
 
 log.basicConfig(level=log.INFO)
 
@@ -14,7 +14,7 @@ irreps = Dih_Irreps(group.N)
 # plaq_matrix = wl_matrix_multiproc(group, irreps, 4, pool_size=8)
 # plaq = Plaquette(from_dict=plaq_matrix)
 
-plaq = Plaquette(from_file="../pickled/plaquette_data_D4.pkl")
+plaq = PlaquetteMel(from_file="../pickled/plaquette_data_D4.pkl")
 print('> Plaquette loaded')
 print(f'\t> #rows: {len(plaq._rows)}')
 print(f'\t> #irreps confs: {len(plaq._irrep_confs)}')
