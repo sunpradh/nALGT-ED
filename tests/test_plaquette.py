@@ -4,7 +4,7 @@ sys.path.append('..')
 import logging as log
 
 from group import Dih_group, Dih_Irreps
-from plaquette import PlaquetteMel, plaquette_links
+from hamiltonian.plaquette import PlaquetteMel, plaquette_links
 
 log.basicConfig(level=log.INFO)
 

@@ -2,11 +2,11 @@
 Gauss operators in the irrep basis
 """
 import numpy as np
-
 from functools import reduce
-from utils import sanitize
+
 from group import Group_elem
-from mytyping import IrrepFn
+from utils.utils import sanitize
+from utils.mytyping import IrrepFn
 
 def left_irrep(g: Group_elem, irrep):
     return np.conj(irrep(g)).T

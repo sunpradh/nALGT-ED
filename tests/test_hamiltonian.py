@@ -3,7 +3,7 @@ sys.path.append('..')
 
 from group import Dih_group, Dih_Irreps
 from basis.basis import Basis
-from hamiltonian import electric_hamiltonian
+from hamiltonian.electric import electric_hamiltonian
 
 group = Dih_group(4)
 irreps = Dih_Irreps(group.N)

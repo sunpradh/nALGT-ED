@@ -2,12 +2,13 @@
 Compute the physical basis, in "compressed form",
 for a given group, irreps and lattice geometry
 """
+
+from itertools import product
 from collections import namedtuple
 
 from basis.invariant import invariant_states
 from group import Group, Irreps
-from itertools import product
-from mytyping import IrrepConf, VertexLinks, InvariantSpace
+from utils.mytyping import IrrepConf, VertexLinks, InvariantSpace
 
 
 def vertex_basis(

@@ -12,8 +12,8 @@ from operator import mul
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from group import Group, Irreps
-from utils import sanitize
-from mytyping import PlaqIndex, GroupTuple
+from utils.utils import sanitize
+from utils.mytyping import PlaqIndex, GroupTuple
 
 
 def multiply(iterable):

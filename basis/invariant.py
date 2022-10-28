@@ -3,11 +3,11 @@ Find the invariant states of a single vertex
 """
 import numpy as np
 
-from basis.gauss import gauss_operator
-from linalg import projector, null_space_system
-from utils import  sanitize, multiindex
 from group import Group, Irreps
-from mytyping import IrrepConf, IrrepFn, Vector
+from basis.gauss import gauss_operator
+from utils.mytyping import IrrepConf, IrrepFn, Vector
+from utils.linalg import projector, null_space_system
+from utils.utils import  sanitize, multiindex
 
 
 def irrep_conf(conf: IrrepConf, irreps: Irreps) -> tuple[IrrepFn, ...]:

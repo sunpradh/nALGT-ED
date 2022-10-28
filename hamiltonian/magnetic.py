@@ -1,37 +1,14 @@
 """
-Compute the Hamiltonian
+Compute the magnetic Hamiltonian
 """
+
 import numpy as np
 from itertools import product
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 
 from basis.basis import Basis, StateLabel
-from group import Group_elem, Irreps
-from plaquette import PlaquetteMel, plaquette_links
-from mytyping import MelIndex, VertexLinks, PlaqVertices
-
-
-def electric_single_link_fn(
-        generating_set: list[Group_elem],
-        irreps: Irreps
-    ) -> Callable[[int], float]:
-    def f(j):
-        dim = irreps.dim(j)
-        char_sum = sum(irreps.chars[j](g) for g in generating_set)
-        return len(generating_set) - (char_sum / dim)
-    return f
-
-
-def electric_hamiltonian(
-        basis: Basis,
-        generating_set: list[Group_elem],
-        irreps: Irreps
-    ) -> list[float]:
-    f = electric_single_link_fn(generating_set, irreps)
-    electric_values = [
-        sum(f(j) for j in state[0]) for state in basis.states
-    ]
-    return electric_values
+from hamiltonian.plaquette import PlaquetteMel, plaquette_links
+from utils.mytyping import MelIndex, VertexLinks, PlaqVertices
 
 
 def indices_list(

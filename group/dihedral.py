@@ -1,8 +1,8 @@
 """
 D4 digital simulation
 """
-import numpy as np
 import math
+import numpy as np
 from .base_group import Group_elem, Group, Irreps
 
 
