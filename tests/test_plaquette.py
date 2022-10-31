@@ -14,10 +14,10 @@ irreps = Dih_Irreps(group.N)
 # plaq_matrix = wl_matrix_multiproc(group, irreps, 4, pool_size=8)
 # plaq = Plaquette(from_dict=plaq_matrix)
 
-plaq = PlaquetteMel(from_file="../pickled/plaquette_data_D4.pkl")
+plaq = PlaquetteMel(irreps=irreps, from_file="../pickled/plaquette_data_D4.pkl")
 print('> Plaquette loaded')
-print(f'\t> #rows: {len(plaq._rows)}')
-print(f'\t> #irreps confs: {len(plaq._irrep_confs)}')
+print(f'\t> #rows: {len(plaq)}')
+print(f'\t> #irreps confs: {len(plaq.irrep_confs)}')
 print()
 
 conf1 = (0, 0, 0, 0)
