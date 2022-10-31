@@ -2,30 +2,15 @@
 Compute the magnetic Hamiltonian
 """
 
+import logging as log
 import numpy as np
-from itertools import product
 from collections.abc import Sequence
+from tqdm import tqdm
 
-from basis.basis import Basis, StateLabel
+from basis.basis import Basis, State
 from hamiltonian.plaquette import PlaquetteMel, plaquette_links
 from utils.mytyping import MelIndex, VertexLinks, PlaqVertices
-
-
-def indices_list(
-        basis: Basis,
-        state: StateLabel
-    ) -> list[Sequence[MelIndex]]:
-    """
-    Return a list of all the possible subindices (j_i, m_i, n_i) for each link
-    given a state with a irrep conf (j_1, ..., j_nlinks)
-    """
-    # possible subindices for each link
-    return [
-        list(
-            product([j], range(basis.irreps.dim(j)), range(basis.irreps.dim(j)))
-        )
-        for j in state.irreps
-    ]
+from utils.utils import iter_irrep_mels
 
 
 def subindices_vertex(
@@ -50,9 +35,9 @@ def compute_psi(
     return psi[m1][m2][n3][n4]
 
 
-def compute_psi_plq(
+def compute_psi_plaq(
         basis: Basis,
-        state: StateLabel,
+        state: State,
         plaquette: PlaqVertices,
         jmns: Sequence[MelIndex]
     ) -> float:
@@ -66,17 +51,13 @@ def compute_psi_plq(
 
 def magnetic_hamiltonian_mel(
         basis: Basis,
-        bra: StateLabel,
-        ket: StateLabel,
+        bra: State,
+        ket: State,
         plaquettes: list[PlaqVertices],
         plaquette_mels: PlaquetteMel
     ):
     # plaquette links
     plaqs_links = plaquette_links(basis.vertices, plaquettes)
-
-    # subindices (m_i, n_i) for the bra and ket states
-    bra_indices_list = indices_list(basis, bra)
-    ket_indices_list = indices_list(basis, ket)
 
     # We are gonna use a brute force method:
     # Cycle over all the possible subindices (m_i, n_i) given (j_1, ..., j_nlinks)
@@ -88,7 +69,7 @@ def magnetic_hamiltonian_mel(
         bra_plaq_js = tuple(bra.irreps[link] for link in p_links)
         ket_plaq_js = tuple(ket.irreps[link] for link in p_links)
         # one-plaquette Wilson loop
-        WL = plaquette_mels.select(bra_plaq_js, ket_plaq_js, as_list=False)
+        WL = plaquette_mels.select(bra_plaq_js, ket_plaq_js, flatten=False)
 
         # skip this plaquette if it has no nonzero matrix elements
         if not WL:
@@ -96,7 +77,8 @@ def magnetic_hamiltonian_mel(
 
         non_p_links = [link for link in range(basis.nlinks) if link not in p_links]
 
-        for bra_jmn in product(*bra_indices_list):
+        # indices (m_i, n_i) for the bra state
+        for bra_jmn in iter_irrep_mels(basis.irreps, bra.irreps):
             bra_jmn_plq = tuple(bra_jmn[link] for link in p_links)
             bra_jmn_out = tuple(bra_jmn[link] for link in non_p_links)
 
@@ -104,7 +86,8 @@ def magnetic_hamiltonian_mel(
             if bra_jmn_plq not in WL:
                 continue
 
-            for ket_jmn in product(*ket_indices_list):
+            # indices (m_i, n_i) for the ket state
+            for ket_jmn in iter_irrep_mels(basis.irreps, ket.irreps):
                 ket_jmn_plq = tuple(ket_jmn[link] for link in p_links)
                 ket_jmn_out = tuple(ket_jmn[link] for link in non_p_links)
 
@@ -118,9 +101,25 @@ def magnetic_hamiltonian_mel(
                 C = WL[bra_jmn_plq][ket_jmn_plq]
 
                 # product of the gauge inv. coeff. for the bra and ket state
-                psi_bra = np.conj(compute_psi_plq(basis, bra, p_vertices, bra_jmn))
-                psi_ket = compute_psi_plq(basis, ket, p_vertices, ket_jmn)
+                psi_bra = np.conj(compute_psi_plaq(basis, bra, p_vertices, bra_jmn))
+                psi_ket = compute_psi_plaq(basis, ket, p_vertices, ket_jmn)
 
                 # add to the sum
                 result = result + (psi_bra * C * psi_ket)
     return result
+
+
+def magnetic_hamiltonian_row(
+        basis: Basis,
+        bra: State,
+        plaquettes: list[PlaqVertices],
+        plaquette_mels: PlaquetteMel,
+        progress_bar=False
+    ):
+    results = dict()
+    iterator = tqdm(basis.states) if progress_bar else basis.states
+    for ket in iterator:
+        c = magnetic_hamiltonian_mel(basis, bra, ket, plaquettes, plaquette_mels)
+        if c:
+            results[ket] = c
+    return results

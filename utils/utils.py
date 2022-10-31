@@ -1,7 +1,11 @@
 """Some utilities"""
 import numpy as np
-from itertools import repeat, accumulate
+from collections.abc import Iterable
+from itertools import repeat, accumulate, product
 from operator import mul
+
+from group import Irreps
+from utils.mytyping import IrrepIndex
 
 def is_iterable(obj):
     """Check if `obj` is iterable"""
@@ -36,3 +40,13 @@ def multiindex(index, sizes, length, offsets=0):
     sizes = repeat(sizes, length) if not is_iterable(sizes) else sizes
     prod = accumulate(sizes, mul, initial=1)
     return tuple((index // p) % s + o for p, s, o in zip(prod, sizes, offsets))
+
+
+def iter_irrep_mels(irreps: Irreps, irr_conf: Iterable[IrrepIndex]):
+    indices_list = [
+        list(
+            product([j], range(irreps.dim(j)), range(irreps.dim(j)))
+        )
+        for j in irr_conf
+    ]
+    return product(*indices_list)

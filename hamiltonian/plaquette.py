@@ -12,7 +12,7 @@ from operator import mul
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from group import Group, Irreps
-from utils.utils import sanitize
+from utils.utils import sanitize, iter_irrep_mels
 from utils.mytyping import PlaqIndex, GroupTuple
 
 
@@ -204,22 +204,30 @@ def plaquette_links(vertices, plaquettes):
     ]
 
 
+
+
+
 class PlaquetteMel:
     """
     Class for interfacing with the matrix elements of a single plaquette Wilson loop
     """
-    def __init__(self, from_dict = None, from_file = None):
+    def __init__(self, irreps = Irreps, from_dict = None, from_file = None):
         """
         Can be initialized from a dict (output of wl_matrix*) or read from a pickled file
         """
+        self._irreps = irreps
         self._mels_dict = None
         if from_dict:
             self._mels_dict = from_dict
         if from_file:
             self.load_file(from_file)
-        self._rows = list(self._mels_dict.keys())
-        self._irrep_confs = list({tuple(jmn[0] for jmn in row) for row in self._rows})
-        self._irrep_confs.sort()
+        self.irrep_confs = list({tuple(jmn[0] for jmn in row) for row in self._mels_dict})
+        self.irrep_confs.sort()
+
+    def __len__(self):
+        """Returns the number of rows"""
+        return len(self._mels_dict)
+
 
     def load_file(self, filename):
         """Load plaquette matrix elements from a file"""
@@ -241,18 +249,18 @@ class PlaquetteMel:
         """
         selected_rows = {
             row: self._mels_dict[row]
-            for row in self._rows
-            if all_true(j == jmn[0] for j, jmn in zip(conf, row))
+            for row in iter_irrep_mels(irreps=self._irreps, irr_conf=conf)
+            if row in self._mels_dict
         }
         return selected_rows
 
 
-    def select(self, bra_irreps, ket_irreps, as_list=False):
+    def select(self, bra_irreps, ket_irreps, flatten=False):
         """
         Select the matrix elements for a given bra and ket
         """
         selection = dict()
-        if as_list:
+        if flatten:
             for row in self.select_rows(bra_irreps):
                 for col in self._mels_dict[row]:
                     if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col)):
@@ -261,8 +269,8 @@ class PlaquetteMel:
             for row in self.select_rows(bra_irreps):
                 selected_cols = {
                     col: self._mels_dict[row][col]
-                    for col in self._mels_dict[row]
-                    if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col))
+                    for col in iter_irrep_mels(irreps=self._irreps, irr_conf=ket_irreps)
+                    if col in self._mels_dict[row]
                 }
                 if selected_cols:
                     selection[row] = selected_cols
