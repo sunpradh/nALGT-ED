@@ -4,32 +4,13 @@ sys.path.append('..')
 from group import Dih_group, Dih_Irreps
 from basis.basis import Basis
 from hamiltonian.electric import electric_hamiltonian
+from .lattice_2x2 import vertices, nlinks
 
 group = Dih_group(4)
 irreps = Dih_Irreps(group.N)
 
-# 2x2 periodic lattice
-# indices of the links
-vertices = [
-    (0, 3, 4, 7),
-    (4, 1, 0, 6),
-    (5, 6, 2, 1),
-    (2, 7, 5, 3)
-]
-
-# indices of the vertices for each plaquettes
-# counterclockwise, from the bottom left
-plaquettes = [
-    (0, 1, 2, 3),
-    (1, 0, 3, 2),
-    (2, 3, 0, 1),
-    (3, 2, 1, 0)
-]
-
-
-nlinks = 8
 print(f'> Group: {group}')
-print(f'> Irreps: {group}')
+print(f'> Irreps: {irreps}')
 print("> Computing physical Hilbert space")
 basis = Basis(group, irreps, vertices, nlinks)
 print(f"\ttotal number of states: {len(basis.states)}")

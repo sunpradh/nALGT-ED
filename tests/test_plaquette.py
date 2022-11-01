@@ -5,6 +5,7 @@ import logging as log
 
 from group import Dih_group, Dih_Irreps
 from hamiltonian.plaquette import PlaquetteMel, plaquette_links
+from tests.lattice_2x2 import vertices, plaq_vertices
 
 log.basicConfig(level=log.INFO)
 
@@ -35,25 +36,6 @@ print(f'> Selected irrep conf: {conf3}')
 print(f'\t> #confs: {len(plaq.select_rows(conf3))}')
 print(f'\t> expected: {4**2}')
 
-
-# 2x2 periodic lattice
-# indices of the links
-vertices = [
-    (0, 3, 4, 7),
-    (4, 1, 0, 6),
-    (5, 6, 2, 1),
-    (2, 7, 5, 3)
-]
-
-# indices of the vertices for each plaquettes
-# counterclockwise, from the bottom left
-plaquettes = [
-    (0, 1, 2, 3),
-    (1, 0, 3, 2),
-    (2, 3, 0, 1),
-    (3, 2, 1, 0)
-]
-
 # expected plaquettes links
 expect_plq_links = [
     (0, 1, 2, 3),
@@ -64,8 +46,8 @@ expect_plq_links = [
 
 # Testing function plaq_links
 print("\n\nPlaquettes links:")
-links = plaquette_links(vertices, plaquettes)
-for k in range(len(plaquettes)):
+links = plaquette_links(vertices, plaq_vertices)
+for k in range(len(plaq_vertices)):
     print(f"> Plaq n. {k}:")
     print(f"\t> computed: {links[k]}")
     print(f"\t> expected: {expect_plq_links[k]}")
