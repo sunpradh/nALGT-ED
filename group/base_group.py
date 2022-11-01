@@ -1,5 +1,6 @@
 """Metaclasses for group element, group and irriducible representation (irreps)"""
 
+from functools import cache
 from itertools import product
 import numpy as np
 
@@ -124,6 +125,7 @@ class Irreps():
         """Two-dimensional irreps"""
         return self.irreps[len(self._1d_irreps):]
 
+    @cache
     def dim(self, j=None):
         """
         If no parameter `j` is given, it return the total numbers of matrix elements
