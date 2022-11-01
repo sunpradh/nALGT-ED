@@ -2,7 +2,6 @@
 Compute the magnetic Hamiltonian
 """
 
-import logging as log
 import numpy as np
 from collections.abc import Sequence
 from tqdm import tqdm
@@ -66,19 +65,28 @@ def magnetic_hamiltonian_mel(
     # Cycle over all the possible plaquettes
     result = 0
     for p_vertices, p_links in zip(plaquettes, plaqs_links):
-        bra_plaq_js = tuple(bra.irreps[link] for link in p_links)
-        ket_plaq_js = tuple(ket.irreps[link] for link in p_links)
+        # links outside the plaquette
+        non_p_links = [link for link in range(basis.nlinks) if link not in p_links]
+
+        bra_j_plq = tuple(bra.irreps[link] for link in p_links)
+        ket_j_plq = tuple(ket.irreps[link] for link in p_links)
+        bra_j_out = tuple(bra.irreps[link] for link in non_p_links)
+        ket_j_out = tuple(ket.irreps[link] for link in non_p_links)
+
         # one-plaquette Wilson loop
-        WL = plaquette_mels.select(bra_plaq_js, ket_plaq_js, flatten=False)
+        WL = plaquette_mels.select(bra_j_plq, ket_j_plq, flatten=False)
 
         # skip this plaquette if it has no nonzero matrix elements
         if not WL:
             continue
 
-        non_p_links = [link for link in range(basis.nlinks) if link not in p_links]
+        # skip the plaquette if the irreps outside the plaquettes are not the same
+        if bra_j_out != ket_j_out:
+            continue
 
         # indices (m_i, n_i) for the bra state
         for bra_jmn in iter_irrep_mels(basis.irreps, bra.irreps):
+
             bra_jmn_plq = tuple(bra_jmn[link] for link in p_links)
             bra_jmn_out = tuple(bra_jmn[link] for link in non_p_links)
 
@@ -98,6 +106,8 @@ def magnetic_hamiltonian_mel(
                 # single plaquette wilson loop matrix element
                 if ket_jmn_plq not in WL[bra_jmn_plq]:
                     continue
+
+                # print("computing something")
                 C = WL[bra_jmn_plq][ket_jmn_plq]
 
                 # product of the gauge inv. coeff. for the bra and ket state
