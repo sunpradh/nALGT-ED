@@ -2,6 +2,7 @@
 import numpy as np
 from collections.abc import Iterable
 from itertools import repeat, accumulate, product
+from functools import reduce
 from operator import mul
 
 from group import Irreps
@@ -15,6 +16,16 @@ def is_iterable(obj):
 def sanitize(A):
     """Set to zero all values of A under the machine epsilon"""
     return A * (np.abs(A) > np.finfo(A.dtype).eps * 10)
+
+
+def multiply(iterable: Iterable):
+    """Multiply the elements of an iterable"""
+    return reduce(mul, iterable, 1.0)
+
+
+def all_true(iterable: Iterable):
+    """Check if all the elements of the iterable are true"""
+    return bool(multiply(iterable))
 
 
 def multiindex(index, sizes, length, offsets=0):

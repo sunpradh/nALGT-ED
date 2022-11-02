@@ -7,21 +7,12 @@ import logging as log
 import numpy as np
 import pickle
 from itertools import product
-from functools import reduce, cache
-from operator import mul
+from functools import cache
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from group import Group, Irreps
-from utils.utils import sanitize, iter_irrep_mels
+from utils.utils import sanitize, multiply, all_true, iter_irrep_mels
 from utils.mytyping import PlaqIndex, GroupTuple
-
-
-def multiply(iterable):
-    """Multiply the elements of an iterable"""
-    return reduce(mul, iterable, 1.0)
-
-def all_true(iterable):
-    return bool(multiply(iterable))
 
 
 @cache
@@ -153,9 +144,6 @@ def wl_matrix(
         if mels:
             C[bra] = mels
     return C
-    # For D4, it iterates over 8^4 x 8^4 = 2^24 ~ 16mln elements
-    # Not too efficient
-    # Estimated time for the D4 case: 12h
 
 
 class WLMatrixWorker:
@@ -204,10 +192,7 @@ def plaquette_links(vertices, plaquettes):
     ]
 
 
-
-
-
-class PlaquetteMel:
+class PlaquetteMels:
     """
     Class for interfacing with the matrix elements of a single plaquette Wilson loop
     """

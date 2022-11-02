@@ -1,10 +1,11 @@
 import sys
-sys.path.append('..')
+if '..' not in sys.path:
+    sys.path.append('..')
 
 import logging as log
 
 from group import Dih_group, Dih_Irreps
-from hamiltonian.plaquette import PlaquetteMel, plaquette_links
+from hamiltonian.plaquette import PlaquetteMels, plaquette_links
 from tests.lattice_2x2 import vertices, plaq_vertices
 
 log.basicConfig(level=log.INFO)
@@ -15,7 +16,7 @@ irreps = Dih_Irreps(group.N)
 # plaq_matrix = wl_matrix_multiproc(group, irreps, 4, pool_size=8)
 # plaq = Plaquette(from_dict=plaq_matrix)
 
-plaq = PlaquetteMel(irreps=irreps, from_file="../pickled/plaquette_data_D4.pkl")
+plaq = PlaquetteMels(irreps=irreps, from_file="../pickled/plaquette_data_D4.pkl")
 print('> Plaquette loaded')
 print(f'\t> #rows: {len(plaq)}')
 print(f'\t> #irreps confs: {len(plaq.irrep_confs)}')

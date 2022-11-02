@@ -1,7 +1,8 @@
 import sys
-sys.path.append('..')
-from dihedral import Dih_group, Dih_irreps
+if '..' not in sys.path:
+    sys.path.append('..')
 
+from dihedral import Dih_group, Dih_irreps
 
 dih = Dih_group(4)
 irreps = Dih_irreps(dih.N)

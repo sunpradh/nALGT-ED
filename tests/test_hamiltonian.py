@@ -1,5 +1,6 @@
 import sys
-sys.path.append('..')
+if '..' not in sys.path:
+    sys.path.append('..')
 
 from group import Dih_group, Dih_Irreps
 from basis.basis import Basis

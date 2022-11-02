@@ -2,12 +2,14 @@
 Compute the magnetic Hamiltonian
 """
 
+import logging as log
 import numpy as np
 from collections.abc import Sequence
 from tqdm import tqdm
+from pathos.multiprocessing import ProcessingPool as Pool
 
 from basis.basis import Basis, State
-from hamiltonian.plaquette import PlaquetteMel, plaquette_links
+from hamiltonian.plaquette import PlaquetteMels, plaquette_links
 from utils.mytyping import MelIndex, VertexLinks, PlaqVertices
 from utils.utils import iter_irrep_mels
 
@@ -52,11 +54,11 @@ def magnetic_hamiltonian_mel(
         basis: Basis,
         bra: State,
         ket: State,
-        plaquettes: list[PlaqVertices],
-        plaquette_mels: PlaquetteMel
+        plaqs_vertices: list[PlaqVertices],
+        plaq_mels: PlaquetteMels
     ):
     # plaquette links
-    plaqs_links = plaquette_links(basis.vertices, plaquettes)
+    plaqs_links = plaquette_links(basis.vertices, plaqs_vertices)
 
     # We are gonna use a brute force method:
     # Cycle over all the possible subindices (m_i, n_i) given (j_1, ..., j_nlinks)
@@ -64,7 +66,7 @@ def magnetic_hamiltonian_mel(
 
     # Cycle over all the possible plaquettes
     result = 0
-    for p_vertices, p_links in zip(plaquettes, plaqs_links):
+    for p_vertices, p_links in zip(plaqs_vertices, plaqs_links):
         # links outside the plaquette
         non_p_links = [link for link in range(basis.nlinks) if link not in p_links]
 
@@ -74,7 +76,7 @@ def magnetic_hamiltonian_mel(
         ket_j_out = tuple(ket.irreps[link] for link in non_p_links)
 
         # one-plaquette Wilson loop
-        WL = plaquette_mels.select(bra_j_plq, ket_j_plq, flatten=False)
+        WL = plaq_mels.select(bra_j_plq, ket_j_plq, flatten=False)
 
         # skip this plaquette if it has no nonzero matrix elements
         if not WL:
@@ -107,12 +109,17 @@ def magnetic_hamiltonian_mel(
                 if ket_jmn_plq not in WL[bra_jmn_plq]:
                     continue
 
-                # print("computing something")
                 C = WL[bra_jmn_plq][ket_jmn_plq]
 
                 # product of the gauge inv. coeff. for the bra and ket state
                 psi_bra = np.conj(compute_psi_plaq(basis, bra, p_vertices, bra_jmn))
                 psi_ket = compute_psi_plaq(basis, ket, p_vertices, ket_jmn)
+
+                # loggin information
+                log.info("computing something:")
+                log.info(f"\t bra_jmn: {bra_jmn}")
+                log.info(f"\t ket_jmn: {ket_jmn}")
+                log.info(f"\t psi_bra * C * psi_ket: {psi_bra * C * psi_ket}")
 
                 # add to the sum
                 result = result + (psi_bra * C * psi_ket)
@@ -123,7 +130,7 @@ def magnetic_hamiltonian_row(
         basis: Basis,
         bra: State,
         plaquettes: list[PlaqVertices],
-        plaquette_mels: PlaquetteMel,
+        plaquette_mels: PlaquetteMels,
         progress_bar=False
     ):
     results = dict()
@@ -133,3 +140,40 @@ def magnetic_hamiltonian_row(
         if c:
             results[ket] = c
     return results
+
+
+class MagneticWorker:
+    def __init__(
+            self,
+            basis: Basis,
+            plaqs_vertices: list[PlaqVertices],
+            plaq_mels: PlaquetteMels
+        ):
+        self.basis = basis
+        self.plaqs_vertices = plaqs_vertices
+        self.plaq_mels = plaq_mels
+
+    def calculate_row(self, row: int):
+        bra = self.basis.states[row]
+        kets = self.basis.states[row:]
+        results = dict()
+        print(f"magnetic worker for row = {row}")
+        for i, ket in enumerate(kets):
+            result = magnetic_hamiltonian_mel(
+                basis = self.basis,
+                bra = bra,
+                ket = ket,
+                plaqs_vertices = self.plaqs_vertices,
+                plaq_mels = self.plaq_mels
+            )
+            if result:
+                results[row+i] = result
+        return results
+
+def magnetic_hamiltonian(basis: Basis, plaqs_vertices: list[PlaqVertices], plaq_mels: PlaquetteMels, pool_size: int = 4):
+    worker = MagneticWorker(basis, plaqs_vertices, plaq_mels)
+    pool = Pool(pool_size)
+    # just for testing purposing
+    lst = list(range(3))
+    result = pool.map(worker.calculate_row, lst)
+    return {k: obj for k, obj in zip(lst, result)}
