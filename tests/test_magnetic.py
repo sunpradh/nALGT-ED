@@ -5,14 +5,14 @@ if '..' not in sys.path:
 # import logging as log
 # log.basicConfig(level=log.INFO, format=" >> %(message)s")
 
-from group import Dih_group, Dih_Irreps
+from group import DihGroup, DihIrreps
 from basis.basis import Basis, State
 from hamiltonian.plaquette import PlaquetteMels
 from hamiltonian.magnetic import magnetic_hamiltonian_mel, magnetic_hamiltonian_row
 from tests.lattice_2x2 import vertices, plaq_vertices, nlinks
 
-group = Dih_group(4)
-irreps = Dih_Irreps(group.N)
+group = DihGroup(4)
+irreps = DihIrreps(group.N)
 
 print(f'> Group: {group}')
 print(f'> Irreps: {irreps}')
@@ -23,8 +23,7 @@ print(f"\ttotal number of states: {len(basis.states)}\n")
 
 print('> Loading single plaquette matrix elements')
 plaq_mels = PlaquetteMels(irreps=irreps, from_file="../pickled/plaquette_data_D4.pkl")
-print('> Plaquette loaded')
-print(f'\t#rows: {len(plaq_mels)}\n')
+print('> Plaquette loaded\n')
 
 # Test on single states
 bra0 = basis.states[0]

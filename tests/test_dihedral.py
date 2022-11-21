@@ -2,9 +2,9 @@ import sys
 if '..' not in sys.path:
     sys.path.append('..')
 
-from dihedral import Dih_group, Dih_irreps
+from dihedral import DihGroup, Dih_irreps
 
-dih = Dih_group(4)
+dih = DihGroup(4)
 irreps = Dih_irreps(dih.N)
 
 print("Elements:")

@@ -4,9 +4,9 @@ if '..' not in sys.path:
 
 import numpy as np
 
-from group import Dih_group, Dih_Irreps
-group = Dih_group(4)
-irreps = Dih_Irreps(group.N)
+from group import DihGroup, DihIrreps
+group = DihGroup(4)
+irreps = DihIrreps(group.N)
 
 from basis.gauss import gauss_operator
 from basis.invariant import irrep_conf

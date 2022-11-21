@@ -45,7 +45,7 @@ def Dih_elem(N):
     return Dihedral_element
 
 
-class Dih_group(Group):
+class DihGroup(Group):
     __slots__ = "N", "name", "elements"
 
     def __init__(self, N):
@@ -120,7 +120,7 @@ def _Dih_2d_irrep_complex(N, k):
     return irrep
 
 
-class Dih_Irreps(Irreps):
+class DihIrreps(Irreps):
     __slots__ = "N", "_1d_irreps", "_2d_irreps", "irreps", "chars"
 
     def __init__(self, N, complex=False):

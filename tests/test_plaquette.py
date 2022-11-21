@@ -4,14 +4,14 @@ if '..' not in sys.path:
 
 import logging as log
 
-from group import Dih_group, Dih_Irreps
+from group import DihGroup, DihIrreps
 from hamiltonian.plaquette import PlaquetteMels, plaquette_links
 from tests.lattice_2x2 import vertices, plaq_vertices
 
 log.basicConfig(level=log.INFO)
 
-group = Dih_group(4)
-irreps = Dih_Irreps(group.N)
+group = DihGroup(4)
+irreps = DihIrreps(group.N)
 
 # plaq_matrix = wl_matrix_multiproc(group, irreps, 4, pool_size=8)
 # plaq = Plaquette(from_dict=plaq_matrix)

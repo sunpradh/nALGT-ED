@@ -2,12 +2,12 @@ import sys
 if '..' not in sys.path:
     sys.path.append('..')
 
-from group import Dih_group, Dih_Irreps
+from group import DihGroup, DihIrreps
 from basis.basis import Basis
 from tests.lattice_2x2 import vertices, nlinks
 
-group = Dih_group(4)
-irreps = Dih_Irreps(group.N)
+group = DihGroup(4)
+irreps = DihIrreps(group.N)
 
 print(f'> Group: {group}')
 print(f'> Irreps: {group}')
