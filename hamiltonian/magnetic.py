@@ -4,6 +4,7 @@ Compute the magnetic Hamiltonian
 
 import logging as log
 import numpy as np
+import scipy.sparse as sparse
 from collections.abc import Sequence
 from tqdm import tqdm
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -155,25 +156,36 @@ class MagneticWorker:
 
     def calculate_row(self, row: int):
         bra = self.basis.states[row]
+        # calculate only at the right of the diagonal
         kets = self.basis.states[row:]
         results = dict()
         print(f"magnetic worker for row = {row}")
         for i, ket in enumerate(kets):
-            result = magnetic_hamiltonian_mel(
+            mel = magnetic_hamiltonian_mel(
                 basis = self.basis,
                 bra = bra,
                 ket = ket,
                 plaqs_vertices = self.plaqs_vertices,
                 plaq_mels = self.plaq_mels
             )
-            if result:
-                results[row+i] = result
+            if mel:
+                results[row + i] = mel
         return results
 
-def magnetic_hamiltonian(basis: Basis, plaqs_vertices: list[PlaqVertices], plaq_mels: PlaquetteMels, pool_size: int = 4):
+def magnetic_hamiltonian(
+        basis: Basis,
+        plaqs_vertices: list[PlaqVertices],
+        plaq_mels: PlaquetteMels,
+        pool_size: int = 4
+    ) -> sparse.dok_matrix:
     worker = MagneticWorker(basis, plaqs_vertices, plaq_mels)
     pool = Pool(pool_size)
-    # just for testing purposing
-    lst = list(range(3))
-    result = pool.map(worker.calculate_row, lst)
-    return {k: obj for k, obj in zip(lst, result)}
+    n_states = len(basis.states)
+    lst = list(range(n_states))
+    pool_result = pool.map(worker.calculate_row, lst)
+    H = sparse.dok_matrix((n_states, n_states))
+    for row_ind, row in pool_result.items():
+        for col_ind, elem in row.items():
+            H[row_ind, col_ind] = elem
+            H[col_ind, row_ind] = np.conj(elem)
+    return elem
