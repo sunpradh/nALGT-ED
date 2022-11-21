@@ -8,7 +8,7 @@ if '..' not in sys.path:
 from group import Dih_group, Dih_Irreps
 from basis.basis import Basis, State
 from hamiltonian.plaquette import PlaquetteMels
-from hamiltonian.magnetic import magnetic_hamiltonian_mel, magnetic_hamiltonian
+from hamiltonian.magnetic import magnetic_hamiltonian_mel, magnetic_hamiltonian_row
 from tests.lattice_2x2 import vertices, plaq_vertices, nlinks
 
 group = Dih_group(4)
@@ -41,8 +41,21 @@ for ket0 in kets0:
     print(f"ket0: {ket0}")
     c = magnetic_hamiltonian_mel(basis, bra0, ket0, plaq_vertices, plaq_mels)
     print(f"<bra0|H_B|ket0> = {c}")
-    print('\n')
+    print()
+print()
 
+# Test on a full row for some candidate bra
+bras = [
+    State((0, 0, 0, 0, 0, 0, 0, 0), (0, 0, 0, 0)),
+    State((1, 1, 1, 1, 1, 1, 1, 1), (0, 0, 0, 0)),
+    State((2, 2, 2, 2, 2, 2, 2, 2), (0, 0, 0, 0)),
+    State((3, 3, 3, 3, 3, 3, 3, 3), (0, 0, 0, 0))
+]
 
-# Compute the whole Hamiltonian
-H_B = magnetic_hamiltonian(basis, plaq_vertices, plaq_mels, 6)
+for bra in bras:
+    print(f'> Calcuting row for bra = {bra}')
+    result_row = magnetic_hamiltonian_row(basis, bra, plaq_vertices, plaq_mels, progress_bar=True)
+    print('> Resulting states:')
+    for state, val in result_row.items():
+        print(f'\t{state} -> {val}')
+    print()

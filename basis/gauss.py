@@ -9,7 +9,7 @@ from utils.utils import sanitize
 from utils.mytyping import IrrepFn
 
 def left_irrep(g: Group_elem, irrep):
-    return np.conj(irrep(g)).T
+    return np.conj(irrep(g))
 
 def right_irrep(g: Group_elem, irrep):
     return irrep(g)
