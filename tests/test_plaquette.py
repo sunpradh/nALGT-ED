@@ -19,7 +19,6 @@ irreps = DihIrreps(group.N)
 plaq = PlaquetteMels(irreps=irreps, from_file="../pickled/plaquette_data_D4.pkl")
 print('> Plaquette loaded')
 print(f'\t> #rows: {len(plaq)}')
-print(f'\t> #irreps confs: {len(plaq.irrep_confs)}')
 print()
 
 conf1 = (0, 0, 0, 0)

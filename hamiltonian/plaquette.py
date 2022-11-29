@@ -6,13 +6,16 @@ magnetic terms for a plaquette
 import logging as log
 import numpy as np
 import pickle
-from itertools import product
+
+from itertools import product, chain, repeat
 from functools import cache
+from collections.abc import Sequence
 from pathos.multiprocessing import ProcessingPool as Pool
+from tqdm import tqdm
 
 from group import Group, Irreps
 from utils.utils import sanitize, multiply, all_true, iter_irrep_mels
-from utils.mytyping import PlaqIndex, GroupTuple
+from utils.mytyping import PlaqIndex, GroupTuple, IrrepIndex
 
 
 @cache
@@ -196,51 +199,63 @@ class PlaquetteMels:
     """
     Class for interfacing with the matrix elements of a single plaquette Wilson loop
     """
-    def __init__(self, irreps = Irreps, from_dict = None, from_file = None):
+    def __init__(
+            self,
+            irreps: Irreps,
+            from_dict: dict | None = None,
+            from_file: str | None = None
+        ):
         """
         Can be initialized from a dict (output of wl_matrix*) or read from a pickled file
         """
         self._irreps = irreps
         self._mels_dict = None
+        self._tensors_dict = None
         if from_dict:
             self._mels_dict = from_dict
-        if from_file:
-            self.load_file(from_file)
-        self.irrep_confs = list({tuple(jmn[0] for jmn in row) for row in self._mels_dict})
-        self.irrep_confs.sort()
+        else:
+            if from_file:
+                self.load_file(from_file)
+            else:
+                raise ValueError('No valid argument given')
 
     def __len__(self):
         """Returns the number of rows"""
         return len(self._mels_dict)
 
 
-    def load_file(self, filename):
+    def load_file(self, filename: str):
         """Load plaquette matrix elements from a file"""
         with open(filename, 'rb') as file:
             data = pickle.load(file)
         self._mels_dict = data
 
 
-    def save(self, filename):
+    def save(self, filename: str):
         """Save the plaquette matrix elements to a file"""
         with open(filename, 'wb') as file:
             pickle.dump(file)
 
 
-    def select_rows(self, conf):
+    def select_rows(self, irrep_conf: Sequence[IrrepIndex]):
         """
         Select the rows of the Wilson loop matrix corresponding to a
         irrep configuration on the links of the plaquette
         """
         selected_rows = {
             row: self._mels_dict[row]
-            for row in iter_irrep_mels(irreps=self._irreps, irr_conf=conf)
+            for row in iter_irrep_mels(irreps=self._irreps, irr_conf=irrep_conf)
             if row in self._mels_dict
         }
         return selected_rows
 
 
-    def select(self, bra_irreps, ket_irreps, flatten=False):
+    def select(
+            self,
+            bra_irreps: Sequence[IrrepIndex],
+            ket_irreps: Sequence[IrrepIndex],
+            flatten=False
+        ):
         """
         Select the matrix elements for a given bra and ket
         """
@@ -261,3 +276,47 @@ class PlaquetteMels:
                     selection[row] = selected_cols
         return selection
 
+
+    def _select_as_tensor(
+            self,
+            bra_irreps: Sequence[IrrepIndex],
+            ket_irreps: Sequence[IrrepIndex]
+        ) -> np.ndarray | None:
+        selection = self.select(bra_irreps, ket_irreps, flatten=True)
+        if not selection:
+            return None
+        shape_bra = chain.from_iterable(repeat(self._irreps.dim(j), 2) for j in bra_irreps)
+        shape_ket = chain.from_iterable(repeat(self._irreps.dim(j), 2) for j in ket_irreps)
+        C = np.zeros(tuple(chain.from_iterable((shape_bra, shape_ket))))
+        for bra, ket in selection:
+            index = tuple(chain.from_iterable((jmn[1], jmn[2]) for jmn in chain(bra, ket)))
+            C[index] = selection[(bra, ket)]
+        return C
+
+    def _compute_all_tensors(self):
+        irreps_list = list(product(range(len(self._irreps)), repeat=4))
+        result = dict()
+        for bra in tqdm(irreps_list):
+            for ket in irreps_list:
+                C = self._select_as_tensor(bra, ket)
+                if C is not None:
+                    result[(bra, ket)] = C
+        return result
+
+
+    def init_tensors_dict(self):
+        self._tensors_dict = self._compute_all_tensors()
+
+
+    def tensor(
+        self,
+        bra_irreps: Sequence[IrrepIndex],
+        ket_irreps: Sequence[IrrepIndex]
+    ) -> np.ndarray | None:
+        if self._tensors_dict is None:
+            raise RuntimeError('Dictionary of tensor is not initialized')
+        key = (bra_irreps, ket_irreps)
+        if key in self._tensors_dict:
+            return self._tensors_dict[key]
+        else:
+            return None
