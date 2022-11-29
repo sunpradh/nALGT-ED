@@ -181,7 +181,7 @@ def magnetic_hamiltonian(
     worker = MagneticWorker(basis, plaqs_vertices, plaq_mels)
     pool = Pool(pool_size)
     n_states = len(basis.states)
-    lst = list(range(3))
+    lst = list(range(n_states))
     pool_result = pool.map(worker.calculate_row, lst)
     H = sparse.dok_matrix((n_states, n_states))
     for row_ind, row in zip(lst, pool_result):
