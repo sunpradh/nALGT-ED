@@ -14,11 +14,11 @@ basis = Basis(group, irreps, vertices, nlinks)
 print(f"\ttotal number of states: {len(basis.states)}\n")
 
 print('> Loading single plaquette matrix elements')
-plaq_mels = PlaquetteMels(irreps=irreps, from_file="../pickled/plaquette_data_D4.pkl")
+plaq_mels = PlaquetteMels(irreps=irreps, from_file="pickled/plaquette_data_D4.pkl")
 print('> Plaquette loaded')
 print(f'\t#rows: {len(plaq_mels)}\n')
 
-H_B = magnetic_hamiltonian(basis, plaq_vertices, plaq_mels, pool_size=40)
+H_B = magnetic_hamiltonian(basis, plaq_vertices, plaq_mels, pool_size=1)
 
 with open(filename, 'wb') as file:
     pickle.dump(H_B, file)
