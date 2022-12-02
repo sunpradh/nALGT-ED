@@ -5,7 +5,7 @@ vertices = [
     (2, 7, 5, 3)
 ]
 
-plaq_vertices = [
+plaqs_vertices = [
     (0, 1, 2, 3),
     (1, 0, 3, 2),
     (2, 3, 0, 1),
