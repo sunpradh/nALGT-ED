@@ -54,6 +54,10 @@ def multiindex(index, sizes, length, offsets=0):
 
 
 def iter_irrep_mels(irreps: Irreps, irr_conf: Iterable[IrrepIndex]):
+    """
+    Returns an iterator overr all the possible sequences of mel indices
+    (j1, m1, n1, j2, m2, n2, ...) given a sequence of irreps (j1, j2, ...)
+    """
     indices_list = [
         list(
             product([j], range(irreps.dim(j)), range(irreps.dim(j)))
