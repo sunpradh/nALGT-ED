@@ -2,7 +2,7 @@ from group import DihGroup, DihIrreps
 from basis.basis import Basis
 from hamiltonian.plaquette import PlaquetteMels
 from hamiltonian.magnetic import magnetic_hamiltonian
-from tests.lattice_2x2 import vertices, plaq_vertices, nlinks
+from tests.lattice_2x2 import vertices, plaqs_vertices, nlinks
 import pickle
 
 group = DihGroup(4)
@@ -18,7 +18,7 @@ plaq_mels = PlaquetteMels(irreps=irreps, from_file="pickled/plaquette_data_D4.pk
 print('> Plaquette loaded')
 print(f'\t#rows: {len(plaq_mels)}\n')
 
-H_B = magnetic_hamiltonian(basis, plaq_vertices, plaq_mels, pool_size=1)
+H_B = magnetic_hamiltonian(basis, plaqs_vertices, plaq_mels)
 
 with open(filename, 'wb') as file:
     pickle.dump(H_B, file)

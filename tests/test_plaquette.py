@@ -5,14 +5,15 @@ if '..' not in sys.path:
 import logging as log
 
 from group import DihGroup, DihIrreps
-from hamiltonian.plaquette import PlaquetteMels, plaquette_links
-from tests.lattice_2x2 import vertices, plaq_vertices
+from hamiltonian.plaquette import PlaquetteMels, get_plaq_links
+from tests.lattice_2x2 import vertices, plaqs_vertices
 
 log.basicConfig(level=log.INFO)
 
 group = DihGroup(4)
 irreps = DihIrreps(group.N)
 
+# # Compute plaquette mels
 # plaq_matrix = wl_matrix_multiproc(group, irreps, 4, pool_size=8)
 # plaq = Plaquette(from_dict=plaq_matrix)
 
@@ -46,8 +47,8 @@ expect_plq_links = [
 
 # Testing function plaq_links
 print("\n\nPlaquettes links:")
-links = plaquette_links(vertices, plaq_vertices)
-for k in range(len(plaq_vertices)):
+for k, p_vertices in enumerate(plaqs_vertices):
+    p_links = get_plaq_links(vertices, p_vertices)
     print(f"> Plaq n. {k}:")
-    print(f"\t> computed: {links[k]}")
+    print(f"\t> computed: {p_links}")
     print(f"\t> expected: {expect_plq_links[k]}")
