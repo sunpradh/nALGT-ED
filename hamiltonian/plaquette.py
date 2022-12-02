@@ -11,7 +11,6 @@ from itertools import product, chain, repeat
 from functools import cache
 from collections.abc import Sequence
 from pathos.multiprocessing import ProcessingPool as Pool
-from tqdm import tqdm
 
 from group import Group, Irreps
 from utils.utils import sanitize, multiply, all_true, iter_irrep_mels
@@ -187,12 +186,9 @@ def wl_matrix_multiproc(
     return {bra: row for bra, row in zip(irreps_bras, result)}
 
 
-def plaquette_links(vertices, plaquettes):
+def get_plaq_links(vertices, plaquette):
     """Returns the indices of the links the `ind`-th plaquette"""
-    return [
-        tuple(vertices[i][k] for k, i in enumerate(plq))
-        for plq in plaquettes
-    ]
+    return tuple(vertices[i][k] for k, i in enumerate(plaquette))
 
 
 class PlaquetteMels:
@@ -209,26 +205,27 @@ class PlaquetteMels:
         Can be initialized from a dict (output of wl_matrix*) or read from a pickled file
         """
         self._irreps = irreps
-        self._mels_dict = None
-        self._tensors_dict = None
-        if from_dict:
-            self._mels_dict = from_dict
+        self._mels = None
+        if isinstance(from_dict, dict):
+            self._mels = from_dict
         else:
-            if from_file:
+            if isinstance(from_file, str):
                 self.load_file(from_file)
             else:
                 raise ValueError('No valid argument given')
+        self._tensors = dict()
+
 
     def __len__(self):
         """Returns the number of rows"""
-        return len(self._mels_dict)
+        return len(self._mels)
 
 
     def load_file(self, filename: str):
         """Load plaquette matrix elements from a file"""
         with open(filename, 'rb') as file:
             data = pickle.load(file)
-        self._mels_dict = data
+        self._mels = data
 
 
     def save(self, filename: str):
@@ -243,9 +240,9 @@ class PlaquetteMels:
         irrep configuration on the links of the plaquette
         """
         selected_rows = {
-            row: self._mels_dict[row]
+            row: self._mels[row]
             for row in iter_irrep_mels(irreps=self._irreps, irr_conf=irrep_conf)
-            if row in self._mels_dict
+            if row in self._mels
         }
         return selected_rows
 
@@ -262,19 +259,26 @@ class PlaquetteMels:
         selection = dict()
         if flatten:
             for row in self.select_rows(bra_irreps):
-                for col in self._mels_dict[row]:
+                for col in self._mels[row]:
                     if all_true(j == jmn[0] for j, jmn in zip(ket_irreps, col)):
-                        selection[(row, col)] = self._mels_dict[row][col]
+                        selection[(row, col)] = self._mels[row][col]
         else:
             for row in self.select_rows(bra_irreps):
                 selected_cols = {
-                    col: self._mels_dict[row][col]
+                    col: self._mels[row][col]
                     for col in iter_irrep_mels(irreps=self._irreps, irr_conf=ket_irreps)
-                    if col in self._mels_dict[row]
+                    if col in self._mels[row]
                 }
                 if selected_cols:
                     selection[row] = selected_cols
         return selection
+
+
+    def _shape_from_irreps(self, irreps):
+        return chain.from_iterable(
+            repeat(self._irreps.dim(j), 2)
+            for j in irreps
+        )
 
 
     def _select_as_tensor(
@@ -285,27 +289,13 @@ class PlaquetteMels:
         selection = self.select(bra_irreps, ket_irreps, flatten=True)
         if not selection:
             return None
-        shape_bra = chain.from_iterable(repeat(self._irreps.dim(j), 2) for j in bra_irreps)
-        shape_ket = chain.from_iterable(repeat(self._irreps.dim(j), 2) for j in ket_irreps)
+        shape_bra = self._shape_from_irreps(bra_irreps)
+        shape_ket = self._shape_from_irreps(ket_irreps)
         C = np.zeros(tuple(chain.from_iterable((shape_bra, shape_ket))))
         for bra, ket in selection:
             index = tuple(chain.from_iterable((jmn[1], jmn[2]) for jmn in chain(bra, ket)))
             C[index] = selection[(bra, ket)]
         return C
-
-    def _compute_all_tensors(self):
-        irreps_list = list(product(range(len(self._irreps)), repeat=4))
-        result = dict()
-        for bra in tqdm(irreps_list):
-            for ket in irreps_list:
-                C = self._select_as_tensor(bra, ket)
-                if C is not None:
-                    result[(bra, ket)] = C
-        return result
-
-
-    def init_tensors_dict(self):
-        self._tensors_dict = self._compute_all_tensors()
 
 
     def tensor(
@@ -313,10 +303,10 @@ class PlaquetteMels:
         bra_irreps: Sequence[IrrepIndex],
         ket_irreps: Sequence[IrrepIndex]
     ) -> np.ndarray | None:
-        if self._tensors_dict is None:
-            raise RuntimeError('Dictionary of tensor is not initialized')
         key = (bra_irreps, ket_irreps)
-        if key in self._tensors_dict:
-            return self._tensors_dict[key]
+        if key in self._tensors:
+            return self._tensors[key]
         else:
-            return None
+            tensor = self._select_as_tensor(bra_irreps, ket_irreps)
+            self._tensors[key] = tensor
+            return tensor
