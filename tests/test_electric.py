@@ -4,8 +4,8 @@ if '..' not in sys.path:
 
 from group import DihGroup, DihIrreps
 from basis.basis import Basis
-from hamiltonian.electric import electric_hamiltonian
-from .lattice_2x2 import vertices, nlinks
+from hamiltonian.electric import elec_hamiltonian
+from lattice_2x2 import vertices, nlinks
 
 group = DihGroup(4)
 irreps = DihIrreps(group.N)
@@ -24,5 +24,5 @@ else:
     print(f"> Valid generating set: {generating_set}")
 
 print("> Computing electric Hamiltonian")
-H_E = electric_hamiltonian(basis, generating_set, irreps)
+H_E = elec_hamiltonian(basis, generating_set, irreps, progress_bar=True)
 print("> Done")

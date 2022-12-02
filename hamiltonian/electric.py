@@ -2,13 +2,15 @@
 Compute the electric Hamiltonian
 """
 
+import scipy.sparse as sparse
 from collections.abc import Callable, Iterable
+from tqdm import tqdm
 
 from basis.basis import Basis
 from group import Group_elem, Irreps
 
 
-def electric_single_link_fn(
+def elec_single_link_fn(
         generating_set: Iterable[Group_elem],
         irreps: Irreps
     ) -> Callable[[int], float]:
@@ -19,14 +21,17 @@ def electric_single_link_fn(
     return f
 
 
-def electric_hamiltonian(
+def elec_hamiltonian(
         basis: Basis,
         generating_set: list[Group_elem],
-        irreps: Irreps
+        irreps: Irreps,
+        progress_bar = False
     ) -> list[float]:
-    f = electric_single_link_fn(generating_set, irreps)
-    electric_values = [
-        sum(f(j) for j in state[0]) for state in basis.states
-    ]
-    return electric_values
-
+    f = elec_single_link_fn(generating_set, irreps)
+    n_states = len(basis.states)
+    H = sparse.dok_matrix((n_states, n_states))
+    iterator = tqdm(range(n_states)) if progress_bar else range(n_states)
+    for row in iterator:
+        state = basis.states[row]
+        H[row, row] = sum(f(j) for j in state[0])
+    return H
