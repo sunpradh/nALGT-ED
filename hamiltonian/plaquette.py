@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from group import Group, Irreps
-from utils.utils import sanitize, multiply, all_true, iter_irrep_mels
+from utils.utils import sanitize, multiply, all_true, iter_irrep_mels, unpickle
 from utils.mytyping import PlaqIndex, GroupTuple, IrrepIndex
 
 
@@ -223,9 +223,7 @@ class PlaquetteMels:
 
     def load_file(self, filename: str):
         """Load plaquette matrix elements from a file"""
-        with open(filename, 'rb') as file:
-            data = pickle.load(file)
-        self._mels = data
+        self._mels = unpickle(filename)
 
 
     def save(self, filename: str):

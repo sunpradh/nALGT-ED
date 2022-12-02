@@ -1,5 +1,6 @@
 """Some utilities"""
 import numpy as np
+import pickle
 from collections.abc import Iterable
 from itertools import repeat, accumulate, product
 from functools import reduce
@@ -7,6 +8,11 @@ from operator import mul
 
 from group import Irreps
 from utils.mytyping import IrrepIndex
+
+def unpickle(filename):
+    with open(filename, 'rb') as file:
+        data = pickle.load(file)
+    return data
 
 def is_iterable(obj):
     """Check if `obj` is iterable"""
