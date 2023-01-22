@@ -1,6 +1,6 @@
 # Set number of threads to use (before loading numpy and scipy)
 import os
-os.environ['OMP_NUM_THREADS'] = '12'
+os.environ['OMP_NUM_THREADS'] = '48'
 
 import numpy as np
 from scipy.sparse.linalg import eigsh
@@ -20,56 +20,151 @@ print("> Computing physical Hilbert space")
 basis = Basis(group, irreps, vertices, nlinks)
 print(f"\ttotal number of states: {len(basis.states)}")
 
-generating_set = {group((1,0)), group((3,0)), group((0, 1)), group((2, 1))} # {r, r3, s, r2s}
+#------------------------------------------------------------
+# Helpful methods
+#------------------------------------------------------------
 
-# load electric and magnetic hamiltonian as dok (dict of keys) sparse matrices
-# and convert them to dense matrices
-print('> Computing Electric Hamiltonian')
-HE_dok = elec_hamiltonian(basis, generating_set, irreps, progress_bar=True)
-HE = HE_dok.todense()
-print('\tloaded')
-print(f'\t{repr(HE)}')
+def expt_value(matrix, vector):
+    """Compute expectation value given vector and matrix"""
+    return vector @ matrix @ vector
+
+
+def eigstates(coupling, elec_hamil, magn_hamil, n_eigs):
+    """Compute eigenvalues and eigenvectors for a given coupling"""
+    print(f'\tλ = {coupling:.5f}\t', end='')
+    H = (1 - coupling) * elec_hamil - coupling * magn_hamil
+    energies, vecs = eigsh(H, k=n_eigs, which='SA')
+    eigvecs = [vec.ravel() for vec in vecs.T]
+    return energies, eigvecs
+
+
+def eigstates_over_range(coupling_range, elec_hamil, magn_hamil, n_eigs):
+    """Compute eigenvalues and eigenvectors over a range of couplings"""
+    n_couplings = len(coupling_range)
+    results = dict(
+        energies = np.zeros((n_couplings, n_eigs)),
+        expt_elec = np.zeros(n_couplings),
+        expt_magn = np.zeros(n_couplings),
+        ground_states = np.zeros((n_couplings, elec_hamil.shape[0]))
+    )
+    print('\n>> Computing eigenvalues and eigenvectors\n')
+    for n, coupling in enumerate(coupling_range):
+        energies, eigvecs = eigstates(coupling, elec_hamil, magn_hamil, n_eigs)
+        gs = eigvecs[0]
+        results['energies'][n, :] = energies
+        print(f'E0 = {results["energies"][n, 0]:.5f}\t', end='')
+        results['ground_states'][n] = gs
+        results['expt_elec'][n] = expt_value(elec_hamil, gs)
+        results['expt_magn'][n] = expt_value(magn_hamil, gs)
+        print(f'<H_E> = {results["expt_elec"][n]:.5f} \t', end='')
+        print(f'<H_B> = {results["expt_magn"][n]:.5f}')
+    print()
+    return results
+
+
+def save_results(results: dict, name: str):
+    """Save results in a .npz format"""
+    print(f'Saving for "{name}"')
+    np.savez_compressed(name, **results)
+
+
+def load_elec_hamiltonian(basis, irreps, gen_set):
+    """Load the electric hamiltonian for the given generating set"""
+    print('> Computing Electric Hamiltonian')
+    elec_hamil = elec_hamiltonian(basis, gen_set, irreps, progress_bar=True).tocsc()
+    print('> loaded')
+    print(f'\t{repr(elec_hamil)}')
+    return elec_hamil
+
+
+def compute(gen_set, couplings, n_eigs, name):
+    """Compute and then save"""
+    HE = load_elec_hamiltonian(basis, irreps, gen_set)
+    results = eigstates_over_range(couplings, HE, HB, n_eigs)
+    results['couplings'] = couplings
+    save_results(results, name)
+    print()
+
+
+#------------------------------------------------------------
+# Useful objects
+#------------------------------------------------------------
+
+## Common objects for the three classes of electric Hamiltonians
+# couplings = np.linspace(0, 1, 3) # testing case
+
+# Load electric and magnetic hamiltonian as dok (dict of keys) sparse matrices
+# and convert them to compressed sparse column
+
+# Magnetic Hamiltonian
 print('> Loading Magnetic Hamiltonian')
-# Old hamiltonian
-HB_dok = unpickle("pickled/magn_hamiltonian_D4_2x2.old.pkl")
+HB_dok = unpickle("pickled/magn_hamiltonian_D4_2x2.old.pkl") # old but correct Hamiltonian
 HB = HB_dok.todense()
 print('\tloaded')
 print(f'\t{repr(HB)}')
 print()
 
-# couplings
-couplings = np.linspace(0, 1, 101)
-# couplings = [0, 0.8, 1]
-
 # number of energy levels
-n_eigs = 24
-# store energy levels
-energies = np.zeros((len(couplings), n_eigs))
-expt_HE = np.zeros(len(couplings))
-expt_HB = np.zeros(len(couplings))
-ground_states = np.zeros(len(couplings), HE.shape[0])
+# num_eigs = 24
 
-def expt_value(matrix, vector):
-    return vector @ matrix @ vector
+# Group generators
+r = group.r
+s = group.s
 
+# printing options
 np.set_printoptions(precision=6, linewidth=120)
-print('> Computing spectrum')
 
-for n, lamb in enumerate(couplings):
-    print(f'\tλ = {lamb:.5f}\t', end='')
-    H = (1 - lamb) * HE + lamb * HB
-    E, V = eigsh(H, k=n_eigs, which='SA')
 
-    print(f'E0 = {E[0]:.4f}\t', end='')
-    eigvecs = [vec.ravel() for vec in V.T]
-    energies[n,:] = E
-    ground_states[n, :] = eigvecs[0]
+#------------------------------------------------------------
+# Main computation
+#------------------------------------------------------------
 
-    expt_HE[n] = expt_value(HE, eigvecs[0])
-    expt_HB[n] = expt_value(HB, eigvecs[0])
-    print(f'<H_E> = {expt_HE[n]:.5f}  \t<H_B> = {expt_HB[n]:.5f}')
+print('----------------------------------------')
+print(' Non-relativistic case')
+print('----------------------------------------')
+gen_set_NR = {r, ~r, s, r*r*s}
+couplings_NR = np.concatenate((
+                  np.linspace(0, 0.6, 61)[:-1],
+                  np.linspace(0.6, 0.8, 101),
+                  np.linspace(0.8, 1, 21)[1:]
+              ))
+compute(
+    gen_set=gen_set_NR,
+    couplings=couplings_NR,
+    n_eigs=10,
+    name='results_NR'
+)
 
-np.save('energies', energies)
-np.save('expt_HE', expt_HE)
-np.save('expt_HB', expt_HB)
-np.save('ground_states', ground_states)
+
+print('----------------------------------------')
+print(' Relativistic case')
+print('----------------------------------------')
+gen_set_R = {r, ~r, s, r*s, r*r*s, r*r*r*s}
+couplings_R = np.concatenate((
+                  np.linspace(0, 0.65, 66)[:-1],
+                  np.linspace(0.65, 0.85, 101),
+                  np.linspace(0.85, 1, 16)[1:]
+              ))
+compute(
+    gen_set=gen_set_R,
+    couplings=couplings_R,
+    n_eigs=10,
+    name='results_R'
+)
+
+
+print('----------------------------------------')
+print(' Degenerate case')
+print('----------------------------------------')
+gen_set_D = {r, r*r, r*r*r}
+couplings_D = np.concatenate((
+                  np.linspace(0, 0.5, 51)[:-1],
+                  np.linspace(0.5, 0.8, 151),
+                  np.linspace(0.8, 1, 21)[1:]
+              ))
+compute(
+    gen_set=gen_set_D,
+    couplings=couplings_D,
+    n_eigs=40,
+    name='results_D'
+)
